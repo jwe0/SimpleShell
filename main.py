@@ -79,7 +79,6 @@ class NgrokServer:
         self.url = ""
         self.tcp_url = ""
         self.local = False if local != "y" else True
-        print(self.local)
 
     def load_port(self):
         with open("Assets/config.json", "r") as f:
