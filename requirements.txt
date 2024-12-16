@@ -1,0 +1,2 @@
+pyngrok==7.2.1
+PyYAML==6.0.2
