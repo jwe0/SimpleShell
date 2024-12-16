@@ -70,25 +70,35 @@ def create_handler(payload):
 
 # Starts the ngrok servers
 class NgrokServer:
-    def __init__(self, key):
+    def __init__(self, key, local, revip, revport, hostip):
         self.log = Log()
         self.key = key
+        self.revip = revip
+        self.revport = revport
+        self.hostip = hostip
         self.url = ""
         self.tcp_url = ""
+        self.local = False if local != "y" else True
+        print(self.local)
 
     def load_port(self):
         with open("Assets/config.json", "r") as f:
             data = json.load(f)
-
             return data.get("web_port")
 
     def start(self):
+        if self.local:
+            self.url = "http://" + self.hostip + ":" + str(self.load_port())
+            return
         ngrok.set_auth_token(self.key)
         tunnel = ngrok.connect(self.load_port(), "http")
         self.url = tunnel.public_url
         self.log.info("Ngrok tunnel: " + tunnel.public_url)
 
     def tcp(self, port):
+        if self.local:
+            self.tcp_url = "tcp://" + self.revip + ":" + port
+            return
         tunnel = ngrok.connect(port, "tcp")
         self.tcp_url = tunnel.public_url
         self.log.info("Ngrok tunnel: " + tunnel.public_url)
@@ -103,9 +113,11 @@ class Main:
         self.rev_host = self.log.inpt("Reverse host: ")
         self.rev_port = self.log.inpt("Reverse port: ")
         autorun = self.log.inpt("Autorun?: ")
+        self.local = self.log.inpt("Local?: ")
         self.autorun = False if autorun == "n" else True
         self.rev_server = RevServer(self.rev_host, self.rev_port, self.autorun)
-        self.ngrok_server = NgrokServer(self.key())
+        hostip, _ = self.load_host()
+        self.ngrok_server = NgrokServer(self.key(), self.local, self.rev_host, self.rev_port, hostip)
         self.ngrok_server.tcp(self.rev_port)
 
     def setup(self):
