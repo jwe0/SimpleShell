@@ -159,13 +159,23 @@ class Main:
 
     def show_loads(self):
         self.log.verbose("Available payloads")
-        for file in self.payloads:
-            self.log.info(file.split(".")[0])
+        loads = []
+        for file in list(os.walk("Assets/Payloads")):
+            for f in file[2]:
+                if f.endswith(".txt"):
+                    loads.append("".join(file[0].split("/")[2:]) + "/" + f.split(".")[0])
+        for file in loads:
+            self.log.info(file)
 
     def show_deliveries(self):
         self.log.verbose("Available deliveries")
-        for file in self.deliveries:
-            self.log.info(file.split(".")[0])
+        loads = []
+        for file in list(os.walk("Assets/Deliveries")):
+            for f in file[2]:
+                if f.endswith(".txt"):
+                    loads.append("".join(file[0].split("/")[2:]) + "/" + f.split(".")[0])
+        for file in loads:
+            self.log.info(file)
 
     def start_server(self, load):
         load = self.load_payload(load)
@@ -177,12 +187,12 @@ class Main:
     def main(self):
         self.show_loads()
         payload = self.log.inpt("Payload: ")
-        while payload not in self.payloads:
+        while not os.path.exists(f"Assets/Payloads/{payload + '.txt'}"):
             self.log.error("Invalid payload")
             payload = self.log.inpt("Payload: ")
         self.show_deliveries()
         delivery = self.log.inpt("Delivery: ")
-        while delivery not in self.deliveries:
+        while not os.path.exists(f"Assets/Deliveries/{delivery + '.txt'}"):
             self.log.error("Invalid delivery")
             delivery = self.log.inpt("Delivery: ")
         self.ngrok_server.start()

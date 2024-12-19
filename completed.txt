@@ -1,0 +1,4 @@
+revshells.com
+
+bash -i
+bash 196
